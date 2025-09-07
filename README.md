@@ -4,7 +4,6 @@ This repo implements the assessment: Lumen (PHP) API with JWT + MySQL, Node.js (
 Spin up everything with:
 
 ```bash
-cp .env.example .env
 docker compose up --build
 ```
 
