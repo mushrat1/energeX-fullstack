@@ -1,0 +1,78 @@
+version: "3.9"
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: enrg-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: energex
+      MYSQL_USER: app
+      MYSQL_PASSWORD: app
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "root", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks: [enrg]
+
+  redis:
+    image: redis:7-alpine
+    container_name: enrg-redis
+    ports:
+      - "6379:6379"
+    networks: [enrg]
+
+  api:
+    build: ./backend-php
+    container_name: enrg-api
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    env_file:
+      - ./.env
+    ports:
+      - "8000:8000"
+    networks: [enrg]
+    volumes:
+      - ./backend-php:/var/www
+
+  cache:
+    build: ./cache-node
+    container_name: enrg-cache
+    depends_on:
+      - mysql
+      - redis
+    env_file:
+      - ./.env
+    ports:
+      - "4000:4000"
+    networks: [enrg]
+  # volumes:
+  #   - ./cache-node:/usr/src/app
+
+  web:
+    build: ./frontend
+    container_name: enrg-web
+    depends_on:
+      - api
+    env_file:
+      - ./.env
+    ports:
+      - "5173:5173"
+    networks: [enrg]
+  # volumes:
+  #   - ./frontend:/usr/src/app
+
+volumes:
+  db_data:
+
+networks:
+  enrg:
+    driver: bridge
